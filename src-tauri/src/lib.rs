@@ -1,6 +1,6 @@
 use calamine::{open_workbook, DataType, HeaderRow, Reader, Xlsx};
 use rayon::prelude::*;
-use std::sync::RwLock;
+use std::{sync::RwLock, thread::sleep, time::Duration};
 use tauri::{AppHandle, Builder, Emitter, Manager};
 
 use nn::{activation_functions::ActivationFunction, NeuralNetwork};
@@ -130,24 +130,28 @@ async fn learn(app: AppHandle, max_epoch_count: usize) -> Result<(), String> {
     }
 
     let _ = (0..=max_epoch_count).into_iter().try_for_each(|epoch| {
-        let state = app.state::<RwLock<AppState>>();
-        let mut state = state.write().unwrap();
-        if state.is_learning == false {
-            return Err("Learning stopped!".to_string());
-        }
+        {
+            let state = app.state::<RwLock<AppState>>();
+            let mut state = state.write().unwrap();
+            if state.is_learning == false {
+                return Err("Learning stopped!".to_string());
+            }
 
-        let (mse, mse_validation) = state.nn.epoch();
-        app.emit(
-            "EPOCH",
-            EpochStats {
-                epoch: Some(epoch),
-                mse: Some(mse),
-                mse_validation: Some(mse_validation),
-            },
-        )
-        .unwrap();
-        let heatmap = get_heatmap_data(&state.nn);
-        app.emit("HEATMAP", heatmap).unwrap();
+            let (mse, mse_validation) = state.nn.epoch();
+            app.emit(
+                "EPOCH",
+                EpochStats {
+                    epoch: Some(epoch),
+                    mse: Some(mse),
+                    mse_validation: Some(mse_validation),
+                },
+            )
+            .unwrap();
+            let heatmap = get_heatmap_data(&state.nn);
+            app.emit("HEATMAP", heatmap).unwrap();
+        }
+        // allow the frontend to invoke stop command
+        sleep(Duration::from_millis(1));
         Ok(())
     });
 
