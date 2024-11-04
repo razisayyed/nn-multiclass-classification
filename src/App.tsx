@@ -47,6 +47,7 @@ function App() {
     outputLayer: { neuronsCount: 2, activationFunction: "softmax" },
     alpha: 0.03,
     maxEpochs: 500,
+    desiredMse: 0.01,
     trainingData: preset(8, 56, 0), // 70%
     validationData: preset(8, 12, 0), // 15%
     testingData: preset(8, 12, 0), // 15%
@@ -137,7 +138,7 @@ function App() {
 
   return (
     <div className="flex justify-stretch items-stretch gap-3 h-screen overflow-hidden p-3">
-      <div className="bg-gray-100 p-3 w-[400px] grid grid-cols-2 gap-3 content-start">
+      <div className="bg-gray-100 p-3 w-[300px] grid grid-cols-2 gap-3 content-start">
         <div className="flex flex-col gap-2">
           <div className="text-center">Density</div>
           <input type="range" min={40} max={120} step={1} className="slider" value={settings.density} onChange={(e) => dispatchSettings({ type: "SET_DENSITY", payload: { density: +e.target.value } })} />
@@ -180,10 +181,14 @@ function App() {
       </div>
       <main className="h-screen overflow-auto w-full">
         <div className="bg-gray-100 p-3 w-full mb-3">
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Max Epochs</div>
               <input type="number" value={settings.maxEpochs} onChange={(e) => dispatchSettings({ type: "SET_MAX_EPOCHS", payload: { maxEpochs: +e.target.value } })} />
+            </div>
+            <div className="flex flex-col items-stretch gap-2">
+              <div className="text-center">Desired MSE</div>
+              <input type="number" value={settings.desiredMse} onChange={(e) => dispatchSettings({ type: "SET_DESIRED_MSE", payload: { desiredMse: +e.target.value } })} />
             </div>
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Alpha</div>
@@ -199,6 +204,15 @@ function App() {
                 <option value="0.07">0.07</option>
                 <option value="0.1">0.1</option>
                 <option value="0.2">0.2</option>
+              </select>
+            </div>
+            <div className="flex flex-col items-stretch gap-2">
+              <div className="text-center">Output Layer</div>
+              <select value={settings.outputLayer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_OUTPUT_LAYER_ACTIVATION", payload: { activationFunction: e.target.value } })}>
+                <option value="softmax">softmax</option>
+                <option value="tanh">tanh</option>
+                <option value="sigmoid">sigmoid</option>
+                <option value="relu">relu</option>
               </select>
             </div>
           </div>
@@ -227,15 +241,6 @@ function App() {
                 </select>
               </div>
             ))}
-            <div className="flex flex-col items-stretch gap-2">
-              <div className="text-center">Output Layer</div>
-              <select value={settings.outputLayer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_OUTPUT_LAYER_ACTIVATION", payload: { activationFunction: e.target.value } })}>
-                <option value="softmax">softmax</option>
-                <option value="tanh">tanh</option>
-                <option value="sigmoid">sigmoid</option>
-                <option value="relu">relu</option>
-              </select>
-            </div>
           </div>
         </div>
         <div className="bg-gray-100 p-3 w-full mb-3">

@@ -10,6 +10,9 @@ export interface Settings {
     }
     alpha: number;
     maxEpochs: number;
+    desiredMse: number;
+    // validationRatio: number;
+    // testingRatio: number;
     trainingData: number[][];
     validationData: number[][];
     testingData: number[][];
@@ -41,6 +44,8 @@ export function settingsReducer(state: Settings, action: { type: string, payload
         newState = { ...state, alpha: action.payload.alpha };
     } else if (action.type === 'SET_MAX_EPOCHS') {
         newState = { ...state, maxEpochs: action.payload.maxEpochs };
+    } else if (action.type === 'SET_DESIRED_MSE') {
+        newState = { ...state, desiredMse: action.payload.desiredMse };
     } else if (action.type === 'SET_TRAINING_DATA') {
         newState = { ...state, trainingData: action.payload.trainingData };
     } else if (action.type === 'SET_VALIDATION_DATA') {
