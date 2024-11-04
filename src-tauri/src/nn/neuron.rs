@@ -6,8 +6,8 @@ use rand::distributions::{Distribution, Uniform};
 
 #[derive(Clone, Debug)]
 pub struct Neuron {
-    #[allow(dead_code)]
-    layer: usize,
+    // #[allow(dead_code)]
+    // layer: usize,
     layer_type: LayerType,
     weights: Vec<f64>,
     threshold: f64,
@@ -23,9 +23,8 @@ pub struct Neuron {
 
 impl Neuron {
     pub fn new(
-        layer: usize,
         layer_type: LayerType,
-        inputs_count: u32,
+        inputs_count: usize,
         activation_function: ActivationFunctionWrapper,
         alpha: f64,
     ) -> Self {
@@ -38,7 +37,6 @@ impl Neuron {
             .collect::<Vec<_>>();
 
         Neuron {
-            layer,
             layer_type,
             weights,
             threshold: step.sample(&mut rng),
@@ -60,7 +58,7 @@ impl Neuron {
      *
      * Returns y_actual
      */
-    pub fn forward(&mut self, inputs: Vec<f64>) -> f64 {
+    pub fn forward(&mut self, inputs: &Vec<f64>) -> f64 {
         // we need to store inputs for backward step
         self.inputs = inputs.clone();
 
@@ -68,7 +66,7 @@ impl Neuron {
         self.x = self
             .weights
             .iter()
-            .zip(inputs.clone())
+            .zip(inputs)
             .map(|(&w, i)| w * i)
             .sum::<f64>()
             - self.threshold;
@@ -96,11 +94,10 @@ impl Neuron {
         self.y = self.activation_function.commit(self.y, layer_outputs);
     }
 
-    pub fn commit(&mut self) {
-        self.weights = self
-            .inputs
+    pub fn commit(&mut self, inputs: &Vec<f64>) {
+        self.weights = inputs
             .iter()
-            .zip(self.weights.clone())
+            .zip(&self.weights)
             .map(|(&x, w)| w + (self.alpha * x * self.gradiant_error)) // W + ΔW
             .collect::<Vec<_>>();
 
@@ -127,13 +124,13 @@ impl Neuron {
         self.gradiant_error = self.activation_function.derivative(self.x, layer_outputs) * err;
     }
 
-    pub fn predict(&self, inputs: Vec<f64>) -> f64 {
+    pub fn predict(&self, inputs: &Vec<f64>) -> f64 {
         // compute X
         let x = self
             .weights
             .iter()
             .zip(inputs)
-            .map(|(&w, i)| w * i)
+            .map(|(w, i)| w * i)
             .sum::<f64>()
             - self.threshold;
 

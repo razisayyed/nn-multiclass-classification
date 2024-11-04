@@ -15,25 +15,26 @@ pub enum LayerType {
 #[derive(Clone, Debug)]
 pub struct Layer {
     #[allow(dead_code)]
-    pub layer: usize,
+    pub layer_id: usize,
     pub layer_type: LayerType,
     pub neurons: Vec<Neuron>,
     pub activation_function: ActivationFunction,
+    pub current_inputs: Vec<f64>,
+    pub current_outputs: Vec<f64>,
 }
 
 impl Layer {
     pub fn new(
-        layer: usize,
+        layer_id: usize,
         layer_type: LayerType,
-        inputs_count: u32,
-        neurons_count: u32,
+        inputs_count: usize,
+        neurons_count: usize,
         activation_function: ActivationFunction,
         alpha: f64,
     ) -> Self {
         let neurons = (0..neurons_count)
             .map(|_| {
                 Neuron::new(
-                    layer,
                     layer_type.clone(),
                     inputs_count,
                     get_activation_function(activation_function),
@@ -43,30 +44,27 @@ impl Layer {
             .collect::<Vec<_>>();
 
         Layer {
-            layer,
+            layer_id,
             layer_type,
             neurons: neurons,
             activation_function,
+            current_inputs: vec![],
+            current_outputs: vec![],
         }
     }
-
-    // pub fn set_layer_type(&mut self, layer_type: LayerType) {
-    //     self.layer_type = layer_type;
-    //     self.neurons
-    //         .iter_mut()
-    //         .for_each(|n| n.set_layer_type(layer_type));
-    // }
 
     /**
      * return y_actual for all neurons in this layer.
      *
      * will be used as inputs for the next layer.
      */
-    pub fn forward(&mut self, inputs: Vec<f64>) -> Vec<f64> {
-        let outputs = self
+    pub fn forward(&mut self, inputs: &Vec<f64>) -> Vec<f64> {
+        // needed for backpropagation
+        self.current_inputs = inputs.clone();
+        self.current_outputs = self
             .neurons
             .par_iter_mut()
-            .map(|n| n.forward(inputs.clone()))
+            .map(|n| n.forward(inputs))
             .collect::<Vec<_>>();
 
         // NEEDED FOR SOFTMAX ACTIVATION FUNCTION
@@ -74,11 +72,12 @@ impl Layer {
             ActivationFunction::Softmax => self
                 .neurons
                 .par_iter_mut()
-                .for_each(|n| n.commit_activation_function(&outputs)),
+                .for_each(|n| n.commit_activation_function(&self.current_outputs)),
             _ => (),
         }
 
-        outputs
+        // needed as inputs for the next layer
+        self.current_outputs.clone()
     }
 
     // compute gradiant error for each weight and store it
@@ -88,7 +87,7 @@ impl Layer {
 
         // IMPORTANT FOR SOFTMAX ACTIVATION FUNCTION
         // IT WAS Y. NOW IT IS X (2024-11-02)
-        let outputs = self.neurons.iter().map(|n| n.x).collect::<Vec<_>>();
+        // let outputs = self.neurons.iter().map(|n: &Neuron| n.x).collect::<Vec<_>>();
 
         self.neurons.par_iter_mut().enumerate().for_each(|(i, n)| {
             let input = match (self.layer_type, &y_desired, &next_layer) {
@@ -98,28 +97,29 @@ impl Layer {
                 (LayerType::Output, y_desired, _) => GradiantErrorInput::YDesired(y_desired[i]),
                 _ => GradiantErrorInput::Error,
             };
-            n.backward(input, i, &outputs);
+            n.backward(input, i, &self.current_outputs);
         });
     }
 
     pub fn commit(&mut self) {
-        self.neurons.par_iter_mut().for_each(|n| n.commit());
+        self.neurons
+            .par_iter_mut()
+            .for_each(|n| n.commit(&self.current_inputs));
     }
 
     #[allow(dead_code)]
-    pub fn predict(&self, inputs: Vec<f64>) -> Vec<f64> {
+    pub fn predict(&self, inputs: &Vec<f64>) -> Vec<f64> {
         let outputs = self
             .neurons
             .iter()
-            .map(|n| n.predict(inputs.clone()))
+            .map(|n| n.predict(inputs))
             .collect::<Vec<_>>();
 
         // NEEDED FOR SOFTMAX ACTIVATION FUNCTION
         match self.activation_function {
             ActivationFunction::Softmax => outputs
-                .clone()
-                .into_iter()
-                .map(|o| get_activation_function(self.activation_function).commit(o, &outputs))
+                .iter()
+                .map(|&o| get_activation_function(self.activation_function).commit(o, &outputs))
                 .collect::<Vec<_>>(),
             _ => outputs,
             // ActivationFunction::Softmax => self
