@@ -151,7 +151,7 @@ async fn learn(app: AppHandle, max_epoch_count: usize) -> Result<(), String> {
             app.emit("HEATMAP", heatmap).unwrap();
         }
         // allow the frontend to invoke stop command
-        sleep(Duration::from_millis(1));
+        sleep(Duration::from_nanos(10));
         Ok(())
     });
 
