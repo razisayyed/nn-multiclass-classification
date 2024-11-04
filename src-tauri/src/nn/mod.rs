@@ -175,27 +175,26 @@ impl NeuralNetwork {
     pub fn forward(&mut self, index: usize) -> Vec<f64> {
         // convert inputs to f64
         let (inputs, _) = self.training_data.get(index).unwrap();
-        let inputs = inputs.iter().map(|&i| i.into()).collect::<Vec<f64>>();
+        // let inputs = inputs.iter().map(|&i| i.into()).collect::<Vec<f64>>();
 
         // iterate over all layers and feed each layer with the previous layer outputs.
         self.layers
             .iter_mut()
-            .fold(inputs, |layer_inputs, layer| layer.forward(&layer_inputs))
+            .fold(inputs.clone(), |layer_inputs, layer| {
+                layer.forward(&layer_inputs)
+            })
     }
 
     pub fn backward(&mut self, index: usize) {
         let (_, y_desired) = self.training_data.get(index).unwrap();
-        let y_desired = y_desired.iter().map(|&i| i.into()).collect::<Vec<f64>>();
+        // let y_desired = y_desired.iter().map(|&i| i.into()).collect::<Vec<f64>>();
 
         self.layers
             .iter_mut()
             .rev()
-            .fold(None, |nl: Option<Layer>, l| {
-                match nl {
-                    Some(nl) => l.backward(y_desired.clone(), Some(nl.clone())),
-                    None => l.backward(y_desired.clone(), None),
-                };
-                Some(l.clone())
+            .fold(None, |nl: Option<&Layer>, l| {
+                l.backward(y_desired, nl);
+                Some(l)
             });
     }
 

@@ -84,7 +84,7 @@ impl Neuron {
                 self.compute_output_layer_gradiant_error(y_desired, layer_outputs)
             }
             (LayerType::Hidden, GradiantErrorInput::NextLayer(next_layer)) => {
-                self.compute_hidden_layer_gradiant_error(&next_layer, index, layer_outputs)
+                self.compute_hidden_layer_gradiant_error(next_layer, index, layer_outputs)
             }
             _ => (),
         }
@@ -144,8 +144,8 @@ impl Neuron {
 }
 
 #[derive(Clone, Debug)]
-pub enum GradiantErrorInput {
+pub enum GradiantErrorInput<'a> {
     YDesired(f64),
-    NextLayer(Layer),
+    NextLayer(&'a Layer),
     Error,
 }

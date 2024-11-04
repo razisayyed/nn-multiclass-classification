@@ -82,7 +82,7 @@ impl Layer {
 
     // compute gradiant error for each weight and store it
     // (DO NOT UPDATE WEIGHTS)
-    pub fn backward(&mut self, y_desired: Vec<f64>, next_layer: Option<Layer>) {
+    pub fn backward(&mut self, y_desired: &Vec<f64>, next_layer: Option<&Layer>) {
         // move to neuron.
 
         // IMPORTANT FOR SOFTMAX ACTIVATION FUNCTION
@@ -90,9 +90,9 @@ impl Layer {
         // let outputs = self.neurons.iter().map(|n: &Neuron| n.x).collect::<Vec<_>>();
 
         self.neurons.par_iter_mut().enumerate().for_each(|(i, n)| {
-            let input = match (self.layer_type, &y_desired, &next_layer) {
+            let input = match (self.layer_type, &y_desired, next_layer) {
                 (LayerType::Hidden, _, Some(next_layer)) => {
-                    GradiantErrorInput::NextLayer(next_layer.clone())
+                    GradiantErrorInput::NextLayer(next_layer)
                 }
                 (LayerType::Output, y_desired, _) => GradiantErrorInput::YDesired(y_desired[i]),
                 _ => GradiantErrorInput::Error,
