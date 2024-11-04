@@ -18,7 +18,7 @@ pub struct NeuralNetwork<I: Clone + Into<f64>, O: Clone + Into<f64>> {
     pub testing_data: Vec<(Vec<I>, Vec<O>)>,
 }
 
-impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
+impl<I: Clone + Copy + Into<f64>, O: Clone + Copy + Into<f64>> NeuralNetwork<I, O> {
     pub fn new(
         inputs_count: u32,
         hidden_layers_topology: Vec<u32>,
@@ -85,11 +85,7 @@ impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
 
     pub fn forward(&mut self, inputs: Vec<I>) -> Vec<f64> {
         // convert inputs to f64
-        let inputs = inputs
-            .clone()
-            .into_iter()
-            .map(|i| i.into())
-            .collect::<Vec<f64>>();
+        let inputs = inputs.iter().map(|&i| i.into()).collect::<Vec<f64>>();
 
         // iterate over all layers and feed each layer with the previous layer outputs.
         self.layers
@@ -98,20 +94,7 @@ impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
     }
 
     pub fn backward(&mut self, y_desired: Vec<O>) {
-        let y_desired = y_desired
-            .clone()
-            .into_iter()
-            .map(|i| i.into())
-            .collect::<Vec<f64>>();
-
-        // skip output layer.
-        // let layers_copy = self.layers.clone();
-        // let layers_copy = layers_copy.iter().rev().collect::<Vec<_>>();
-
-        // output layer
-        // if let Some(layer) = self.layers.iter_mut().last() {
-        //     layer.backward(y_desired.clone(), None);
-        // }
+        let y_desired = y_desired.iter().map(|&i| i.into()).collect::<Vec<f64>>();
 
         self.layers
             .iter_mut()
@@ -123,16 +106,6 @@ impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
                 };
                 Some(l.clone())
             });
-
-        // // hidden layers
-        // self.layers
-        //     .iter_mut()
-        //     .rev()
-        //     .skip(1)
-        //     .zip(layers_copy)
-        //     .for_each(|(l, nl)| {
-        //         l.backward(y_desired.clone(), Some(nl.clone()));
-        //     });
     }
 
     pub fn commit(&mut self) {
@@ -150,27 +123,10 @@ impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
         });
         self.mse /= n;
 
-        let n_validation = self.validation_data.len() as f64;
-        let validation_data = self.validation_data.clone();
-        validation_data.into_iter().for_each(|(inputs, y_desired)| {
-            self.mse_validation += self.predict_mse(inputs, y_desired.clone());
-        });
-        self.mse_validation /= n_validation;
+        self.mse_validation = self.calculate_mse(&self.validation_data);
 
         (self.mse, self.mse_validation)
     }
-
-    // pub fn update_mse(&mut self, y_desired: Vec<f64>) {
-    //     let output_layer = self.layers.iter().last().unwrap();
-    //     let outputs = output_layer.get_outputs();
-    //     let mse = outputs
-    //         .iter()
-    //         .zip(y_desired)
-    //         .fold(0.0, |acc, (output, desired)| {
-    //             acc + (desired - output).powi(2)
-    //         });
-    //     self.mse = mse / outputs.len() as f64;
-    // }
 
     pub fn next_iter(&mut self, inputs: Vec<I>, y_desired: Vec<O>) -> f64 {
         self.forward(inputs);
@@ -203,7 +159,19 @@ impl<I: Clone + Into<f64>, O: Clone + Into<f64>> NeuralNetwork<I, O> {
         outputs
     }
 
-    pub fn predict_mse(&self, inputs: Vec<I>, y_desired: Vec<O>) -> f64 {
+    pub fn calculate_mse(&self, data: &Vec<(Vec<I>, Vec<O>)>) -> f64 {
+        let mut result = 0.0;
+        let n = data.len() as f64;
+        let data = data.clone();
+
+        data.into_iter().for_each(|(inputs, y_desired)| {
+            result += self.calculate_mse_for_one_row(inputs, y_desired.clone());
+        });
+        result /= n;
+        result
+    }
+
+    fn calculate_mse_for_one_row(&self, inputs: Vec<I>, y_desired: Vec<O>) -> f64 {
         let outputs = self.predict(inputs);
         outputs
             .iter()
