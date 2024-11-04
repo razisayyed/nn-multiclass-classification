@@ -2123,6 +2123,7 @@ name = "nn_multi_class_classification"
 version = "0.1.0"
 dependencies = [
  "calamine",
+ "lazy_static",
  "rand 0.8.5",
  "rayon",
  "serde",
