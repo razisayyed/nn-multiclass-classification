@@ -8,6 +8,12 @@ export default {
     "./src/containers/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,t s,jsx,tsx,mdx}",
   ],
+  safelist: [
+    {
+      pattern: /fill-.*-300/,
+    },
+  ],
+
   theme: {
     extend: {},
   },
