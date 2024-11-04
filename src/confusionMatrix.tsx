@@ -9,7 +9,7 @@ export function ConfusionMatrixTable({ confusionMatrix }: { confusionMatrix: num
 
     let rows = confusionMatrix.map((row, i) => {
         let cells = row.map((cell, j) => {
-            return <td key={j} className={`border border-gray-400 text-center ${i == j ? "bg-green-300" : ""}`}>{cell}</td>;
+            return <td key={j} className={`border border-gray-400 text-center ${i == j ? "bg-gray-600 text-white" : ""} ${i != j && cell != 0 ? "bg-red-300" : ""}`}>{cell}</td>;
         });
         let sum = row.reduce((acc, val) => acc + val, 0);
         return <tr key={i}>
