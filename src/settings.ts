@@ -18,6 +18,8 @@ export interface Settings {
     testingData: number[][];
     noise: number;
     density: number;
+    preset: number | null;
+    scale: [number, number];
 }
 
 export function settingsReducer(state: Settings, action: { type: string, payload?: any }): Settings {
@@ -60,6 +62,10 @@ export function settingsReducer(state: Settings, action: { type: string, payload
         newState = { ...state, outputLayer: { ...state.outputLayer, neuronsCount: action.payload.neuronsCount } };
     } else if (action.type === 'SET_OUTPUT_LAYER_ACTIVATION') {
         newState = { ...state, outputLayer: { ...state.outputLayer, activationFunction: action.payload.activationFunction } };
+    } else if (action.type === 'SET_PRESET') {
+        newState = { ...state, preset: action.payload.preset };
+    } else if (action.type === 'SET_SCALE') {
+        newState = { ...state, scale: action.payload.scale };
     } else {
         throw Error('Unknown action.');
     }
