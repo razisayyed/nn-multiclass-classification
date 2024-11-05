@@ -2120,7 +2120,7 @@ dependencies = [
 
 [[package]]
 name = "nn_multi_class_classification"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "calamine",
  "lazy_static",
