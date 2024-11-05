@@ -326,7 +326,7 @@ function App() {
                   <option value="tanh">Tanh</option>
                   <option value="sigmoid">Sigmoid</option>
                   <option value="relu">Relu</option>
-                  <option value="leaky_relu">Leaky Relu</option>
+                  <option value="leakyRelu">Leaky Relu</option>
                 </select>
                 <select value={layer.neuronsCount} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_NEURONS", payload: { layer: index, neuronsCount: +e.target.value } })}>
                   {Array.from({ length: 129 }, (_x, i) => i).slice(1).map(i => (
