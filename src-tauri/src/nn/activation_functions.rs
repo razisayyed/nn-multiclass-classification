@@ -14,6 +14,7 @@ pub enum ActivationFunction {
     Linear,
     Sigmoid,
     Relu,
+    LeakyRelu,
     Tanh,
     Softmax,
 }
@@ -25,6 +26,7 @@ pub fn get_activation_function(
         ActivationFunction::Linear => Box::new(&Linear {}),
         ActivationFunction::Sigmoid => Box::new(&Sigmoid {}),
         ActivationFunction::Relu => Box::new(&Relu {}),
+        ActivationFunction::LeakyRelu => Box::new(&LeakyRelu {}),
         ActivationFunction::Tanh => Box::new(&Tanh {}),
         ActivationFunction::Softmax => Box::new(&Softmax {}),
     }
@@ -34,9 +36,9 @@ pub trait ActivationFunctionTrait
 where
     Self: std::fmt::Debug + Send + Sync,
 {
-    fn apply(&self, x: f64) -> f64;
-    fn commit(&self, x: f64, all_outputs: &Vec<f64>) -> f64;
-    fn derivative(&self, x: f64, all_outputs: &Vec<f64>) -> f64;
+    fn apply(&self, big_x: f64) -> f64;
+    fn commit(&self, big_x: f64, all_outputs: &Vec<f64>) -> f64;
+    fn derivative(&self, big_x: f64, all_outputs: &Vec<f64>) -> f64;
 }
 
 #[derive(Debug, Clone)]
@@ -94,10 +96,35 @@ impl ActivationFunctionTrait for Relu {
 }
 
 #[derive(Debug, Clone)]
+pub struct LeakyRelu;
+impl ActivationFunctionTrait for LeakyRelu {
+    fn apply(&self, x: f64) -> f64 {
+        if x < 0. {
+            0.01 * x
+        } else {
+            x
+        }
+    }
+
+    fn commit(&self, x: f64, _all_outputs: &Vec<f64>) -> f64 {
+        self.apply(x)
+    }
+
+    fn derivative(&self, x: f64, _all_outputs: &Vec<f64>) -> f64 {
+        if x < 0. {
+            0.01
+        } else {
+            1.
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Tanh;
 impl ActivationFunctionTrait for Tanh {
     fn apply(&self, x: f64) -> f64 {
         x.tanh()
+        // 2. / (1. + (-2. * x).exp()) - 1.
     }
 
     fn commit(&self, x: f64, _all_outputs: &Vec<f64>) -> f64 {

@@ -285,10 +285,9 @@ function App() {
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Output Layer</div>
               <select value={settings.outputLayer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_OUTPUT_LAYER_ACTIVATION", payload: { activationFunction: e.target.value } })}>
-                <option value="softmax">softmax</option>
-                <option value="tanh">tanh</option>
-                <option value="sigmoid">sigmoid</option>
-                <option value="relu">relu</option>
+                <option value="softmax">Softmax</option>
+                <option value="tanh">Tanh</option>
+                <option value="sigmoid">Sigmoid</option>
               </select>
             </div>
             <div className="col-span-2 flex justify-end items-end gap-3">
@@ -324,9 +323,10 @@ function App() {
               <div key={index} className="flex flex-col items-stretch gap-2">
                 <div className="text-center">L{index + 1}</div>
                 <select value={layer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_ACTIVATION", payload: { layer: index, activationFunction: e.target.value } })}>
-                  <option value="tanh">tanh</option>
-                  <option value="sigmoid">sigmoid</option>
-                  <option value="relu">relu</option>
+                  <option value="tanh">Tanh</option>
+                  <option value="sigmoid">Sigmoid</option>
+                  <option value="relu">Relu</option>
+                  <option value="leaky_relu">Leaky Relu</option>
                 </select>
                 <select value={layer.neuronsCount} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_NEURONS", payload: { layer: index, neuronsCount: +e.target.value } })}>
                   {Array.from({ length: 129 }, (_x, i) => i).slice(1).map(i => (
