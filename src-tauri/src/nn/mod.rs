@@ -246,7 +246,7 @@ impl NeuralNetwork {
         self.predict_normalized(&inputs)
     }
 
-    pub fn predict_normalized(&self, inputs: &Vec<f64>) -> Vec<f64> {
+    fn predict_normalized(&self, inputs: &Vec<f64>) -> Vec<f64> {
         self.layers
             .iter()
             .fold(inputs.clone(), |layer_inputs, layer| {
