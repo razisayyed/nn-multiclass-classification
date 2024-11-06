@@ -12,6 +12,7 @@ import { Circle, FortyFiveDegRect, Rect, TestPointsPlot, Triangle } from "./test
 import { settingsReducer } from "./settings";
 import { stateReducer } from "./state";
 import { HeatMap } from "./heatmap";
+
 import { loadPreset, preset } from "./generate2D";
 import { ConfusionMatrixTable } from "./confusionMatrix";
 import { COLORS, SHAPES } from "./constants";
@@ -74,7 +75,7 @@ function App() {
 
   const [_isPending, startTransition] = useTransition();
 
-  const [heatmapData, setHeatmapData] = useState<number[]>([]);
+  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [showValidationPoints, setShowValidationPoints] = useState(false);
   const [showTestingPoints, setShowTestingPoints] = useState(false);
 
@@ -99,21 +100,26 @@ function App() {
     // listen to mse event from rust and update mse
     // listen to output event from rust and update heatmapData
     let heatmapUnlestin = listen<number[][]>("HEATMAP", (event) => {
-      let heatmapData = event.payload.map((r: number[], _index: number) => {
-        let clz = r.reduce(({ clz, max }, value, index) => {
-          if (value > max) {
-            // val = index + value;
-            // return { clz: index, max: value };
-            return { clz: index, max: value };
-          }
-          return { clz, max };
-        }, { clz: 0, max: -100 });
+      // setHeatmapData(event.payload)
+      startTransition(() => setHeatmapData(event.payload));
+      // return event.payload;
+      // let heatmapData = event.payload.map((r: number[], _index: number) => {
+      //   let clz = r.reduce(({ clz, max }, value, index) => {
+      //     if (value > max) {
+      //       // val = index + value;
+      //       // return { clz: index, max: value };
+      //       return { clz: index, max: value };
+      //     }
+      //     return { clz, max };
+      //   }, { clz: 0, max: -100 });
 
-        return clz.clz + (1 - clz.max);
-        // return clz.clz;
-      });
-
-      startTransition(() => setHeatmapData(heatmapData));
+      //   // if (clz.max <= 0.51) {
+      //   //   return clz.clz + 0.5;
+      //   // } else {
+      //   return clz.clz + (1 - clz.max);
+      //   // }
+      //   // return clz.clz;
+      // });
       // setHeatmapData(heatmapData);
     });
 
@@ -205,8 +211,8 @@ function App() {
   }
 
   return (
-    <div className="flex justify-stretch items-stretch gap-3 h-screen overflow-hidden p-3 select-none">
-      <div className="bg-gray-100 p-3 w-[300px] grid grid-cols-2 gap-3 content-start">
+    <div className="flex justify-stretch items-stretch gap-2 h-screen overflow-hidden p-2 select-none">
+      <div className="bg-gray-100 p-2 w-[300px] grid grid-cols-2 gap-2 content-start">
         <div className="flex flex-col gap-2">
           <div className="text-center">Density</div>
           <input type="range" min={40} max={120} step={1} className="slider" value={settings.density} onChange={(e) => {
@@ -256,19 +262,19 @@ function App() {
         <button className="col-span-2 py-2.5 px-1.5 text-white bg-gray-600 hover:bg-gray-700 uppercase" onClick={loadCustomTrainingData}>Load from Excel</button>
       </div>
       <main className="h-screen overflow-auto w-full">
-        <div className="bg-gray-100 p-3 w-full mb-3">
+        <div className="bg-gray-100 p-2 w-full mb-2">
           <div className="grid grid-cols-6 gap-2 items-end">
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Max Epochs</div>
-              <input type="number" value={settings.maxEpochs} onChange={(e) => dispatchSettings({ type: "SET_MAX_EPOCHS", payload: { maxEpochs: +e.target.value } })} />
+              <input className="p-1" type="number" value={settings.maxEpochs} onChange={(e) => dispatchSettings({ type: "SET_MAX_EPOCHS", payload: { maxEpochs: +e.target.value } })} />
             </div>
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Desired MSE</div>
-              <input type="number" value={settings.desiredMse} onChange={(e) => dispatchSettings({ type: "SET_DESIRED_MSE", payload: { desiredMse: +e.target.value } })} />
+              <input className="p-1" type="number" value={settings.desiredMse} onChange={(e) => dispatchSettings({ type: "SET_DESIRED_MSE", payload: { desiredMse: +e.target.value } })} />
             </div>
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Alpha</div>
-              <select value={settings.alpha} onChange={(e) => dispatchSettings({ type: "SET_ALPHA", payload: { alpha: +e.target.value } })}>
+              <select className="p-1" value={settings.alpha} onChange={(e) => dispatchSettings({ type: "SET_ALPHA", payload: { alpha: +e.target.value } })}>
                 <option value="0.0001">0.0001</option>
                 <option value="0.001">0.001</option>
                 <option value="0.003">0.003</option>
@@ -284,20 +290,20 @@ function App() {
             </div>
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">Output Layer</div>
-              <select value={settings.outputLayer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_OUTPUT_LAYER_ACTIVATION", payload: { activationFunction: e.target.value } })}>
+              <select className="p-1" value={settings.outputLayer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_OUTPUT_LAYER_ACTIVATION", payload: { activationFunction: e.target.value } })}>
                 <option value="softmax">Softmax</option>
                 <option value="tanh">Tanh</option>
                 <option value="sigmoid">Sigmoid</option>
               </select>
             </div>
-            <div className="col-span-2 flex justify-end items-end gap-3">
+            <div className="col-span-2 flex justify-end items-end gap-2">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   learn();
                 }}
               >
-                <button type="submit" className="px-2.5 py-1.5 text-white bg-blue-600 hover:bg-blue-700 uppercase">Learn</button>
+                <button type="submit" className="py-1 px-2.5 text-white bg-gray-600 hover:bg-gray-700 uppercase">▶</button>
               </form>
               <form
                 onSubmit={(e) => {
@@ -305,13 +311,13 @@ function App() {
                   stop();
                 }}
               >
-                <button type="submit" className="px-2.5 py-1.5 text-white bg-red-600 hover:bg-red-700 uppercase">Stop</button>
+                <button type="submit" className="py-1 px-2.5 text-white bg-gray-600 hover:bg-gray-700 uppercase">⏹</button>
               </form>
             </div>
           </div>
         </div>
-        <div className="bg-gray-100 p-3 w-full mb-3">
-          <div className="flex justify-center items-center gap-2 mb-3">
+        <div className="bg-gray-100 p-2 w-full mb-2">
+          <div className="flex justify-center items-center gap-2">
             <button type="button" className="h-6 w-6 rounded-full bg-gray-300 hover:bg-gray-400"
               onClick={() => dispatchSettings({ type: "REMOVE_LAYER" })}>-</button>
             <div className="text-lg text-center uppercase">{settings.layersCount} Hidden Layers</div>
@@ -322,13 +328,13 @@ function App() {
             {settings.hiddenLayers.map((layer, index) => (
               <div key={index} className="flex flex-col items-stretch gap-2">
                 <div className="text-center">L{index + 1}</div>
-                <select value={layer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_ACTIVATION", payload: { layer: index, activationFunction: e.target.value } })}>
+                <select className="p-1" value={layer.activationFunction} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_ACTIVATION", payload: { layer: index, activationFunction: e.target.value } })}>
                   <option value="tanh">Tanh</option>
                   <option value="sigmoid">Sigmoid</option>
                   <option value="relu">Relu</option>
                   <option value="leakyRelu">Leaky Relu</option>
                 </select>
-                <select value={layer.neuronsCount} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_NEURONS", payload: { layer: index, neuronsCount: +e.target.value } })}>
+                <select className="p-1" value={layer.neuronsCount} onChange={(e) => dispatchSettings({ type: "SET_LAYERS_NEURONS", payload: { layer: index, neuronsCount: +e.target.value } })}>
                   {Array.from({ length: 129 }, (_x, i) => i).slice(1).map(i => (
                     <option key={i} value={i}>{`${i} Neuron`}</option>
                   ))}
@@ -337,7 +343,7 @@ function App() {
             ))}
           </div>
         </div>
-        <div className="bg-gray-100 p-3 w-full mb-3">
+        <div className="bg-gray-100 p-2 w-full mb-2">
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col items-stretch gap-2">
               <div>Epoch</div>
@@ -353,11 +359,11 @@ function App() {
             </div>
           </div>
         </div>
-        <div className="flex items-stretch gap-3">
-          <div className="width-[300px]">
-            <div className="w-[300px] h-[300px] relative">
+        <div className="flex items-stretch gap-2">
+          <div className="width-[300px] bg-gray-100 p-2 mb-2">
+            <div className="w-[300px] h-[300px] relative mb-2">
               {heatmapData.length > 0 && (
-                <HeatMap data={deferredHeatmapData} />
+                <HeatMap data={deferredHeatmapData} classesCount={settings.outputLayer.neuronsCount} />
               )}
               {settings.trainingData.length > 0 && (
                 <div className="absolute inset-0">
@@ -369,8 +375,8 @@ function App() {
                 </div>
               )}
             </div>
-            <div className="flex justify-start items-center gap-3 mt-3 w-[300px]">
-              <div className="ml-auto flex items-center gap-2">
+            <div className="flex justify-start items-start gap-2 w-[300px]">
+              <div className="flex items-center gap-2">
                 <input id="testing_set_input" type="checkbox" checked={showTestingPoints} onChange={(e) => setShowTestingPoints(e.target.checked)}
                   className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                 <label htmlFor="testing_set_input">Testing Set</label>
@@ -382,7 +388,7 @@ function App() {
               </div>
             </div>
           </div>
-          <div className="bg-gray-100 p-3 w-full mb-3">
+          <div className="bg-gray-100 p-2 w-full mb-2">
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">CROSS ENTROPY LOSS (TEST)</div>
               <div className="text-center">{state.crossEntropyLoss === null ? '-' : state.crossEntropyLoss}</div>
@@ -391,7 +397,7 @@ function App() {
             </div>
           </div>
         </div>
-        <div className="bg-gray-100 p-3 w-full mb-3">
+        <div className="bg-gray-100 p-2 w-full mb-2">
           <div className="flex flex-col items-stretch gap-2">
             <div className="text-center">PREDICTED CLASSES</div>
             {state.predicted === null ? (
