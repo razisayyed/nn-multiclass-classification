@@ -170,7 +170,7 @@ async fn learn(app: AppHandle, max_epoch_count: usize, desired_mse: f64) -> Resu
             // state aquiration ends here
         }
         // allow the frontend to invoke stop/reset commands
-        sleep(Duration::from_nanos(500));
+        sleep(Duration::from_nanos(1000));
         Ok(())
     });
 
