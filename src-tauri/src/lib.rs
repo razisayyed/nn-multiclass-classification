@@ -167,9 +167,10 @@ async fn learn(app: AppHandle, max_epoch_count: usize, desired_mse: f64) -> Resu
             if mse <= desired_mse {
                 return Err("Desired MSE reached!".to_string());
             }
+            // state aquiration ends here
         }
-        // allow the frontend to invoke stop command
-        sleep(Duration::from_nanos(5));
+        // allow the frontend to invoke stop/reset commands
+        sleep(Duration::from_nanos(500));
         Ok(())
     });
 
@@ -239,7 +240,7 @@ fn get_dummy_heatmap_data() -> Vec<Vec<f64>> {
 }
 
 fn reset_client_state(app: &AppHandle, is_running: bool) {
-    let heatmap = get_dummy_heatmap_data();
+    let heatmap: Vec<Vec<f64>> = get_dummy_heatmap_data();
     app.emit("HEATMAP", heatmap).unwrap();
     app.emit(
         "EPOCH",
@@ -253,10 +254,9 @@ fn reset_client_state(app: &AppHandle, is_running: bool) {
         },
     )
     .unwrap();
-    let confusion_matrix: Option<Vec<Vec<usize>>> = None;
-    app.emit("CONFUSION_MATRIX", confusion_matrix).unwrap();
-    let cross_entropy_loss: Option<f64> = None;
-    app.emit("CROSS_ENTROPY_LOSS", cross_entropy_loss).unwrap();
+    app.emit::<Option<Vec<Vec<usize>>>>("CONFUSION_MATRIX", None)
+        .unwrap();
+    app.emit::<Option<f64>>("CROSS_ENTROPY_LOSS", None).unwrap();
     app.emit("IS_LEARNING", is_running).unwrap();
 }
 
