@@ -41,7 +41,7 @@ export const HEATMAP_COLORS = [
     "#a7f3d0", // emerald-200
     "#bae6fd", // sky-200
     "#bfdbfe", // blue-200
-    "#fef08a", // yellow-200
+    "#fef9c3", // yellow-100 -> yellow is darker than the rest
     "#99f6e4", // teal-200
     "#f5d0fe", // fuchsia-200
     "#e9d5ff", // purple-200
