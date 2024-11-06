@@ -21,10 +21,14 @@ export const loadPreset = (dispatch: React.Dispatch<{
     } else if (n === 7) {
         dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 9 } });
     } else if (n === 8) {
-        dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 2 } });
-    } else if (n === 9) {
         dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 3 } });
+    } else if (n === 9) {
+        dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 2 } });
     } else if (n === 10) {
+        dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 3 } });
+    } else if (n === 11) {
+        dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 2 } });
+    } else if (n === 12) {
         dispatch({ type: "SET_OUTPUT_LAYER_NEURONS", payload: { neuronsCount: 6 } });
     }
 }
@@ -52,6 +56,10 @@ export const preset = (n: number, density: number, noise: number) => {
             return preset9(density, noise);
         case 10:
             return preset10(density, noise);
+        case 11:
+            return preset11(density, noise);
+        case 12:
+            return preset12(density, noise);
         default:
             return [];
     }
@@ -199,6 +207,30 @@ const preset7 = (density: number, noise: number) => {
 
 const preset8 = (density: number, noise: number) => {
     let data: number[][] = [];
+    let groups: [number, number, number, number, number[]][] = [
+        [10, 10, 30 + noise, 30 + noise, [1, 0, 0]],
+        [40 - noise, 10, 60 + noise, 30 + noise, [0, 1, 0]],
+        [70 - noise, 10, 90, 30 + noise, [0, 0, 1]],
+        [10, 40, 30 + noise, 60 + noise, [0, 0, 1]],
+        [40 - noise, 40, 60 + noise, 60 + noise, [1, 0, 0]],
+        [70 - noise, 40, 90, 60 + noise, [0, 1, 0]],
+        [10, 70, 30 + noise, 90, [0, 0, 1]],
+        [40 - noise, 70, 60 + noise, 90, [0, 1, 0]],
+        [70 - noise, 70, 90, 90, [1, 0, 0]],
+    ];
+
+    groups.forEach(([x1, y1, x2, y2, output], _index) => {
+        for (let i = 0; i < density; i++) {
+            let x = randomBetween(x1, x2);
+            let y = randomBetween(y1, y2);
+            data.push([x, y].concat(output));
+        }
+    });
+    return data;
+}
+
+const preset9 = (density: number, noise: number) => {
+    let data: number[][] = [];
     let groups: [number, number, number, number, [number, number]][] = [
         [0, 15, 0, 360, [1, 0]],
         [25, 30, 0, 360, [0, 1]],
@@ -214,7 +246,7 @@ const preset8 = (density: number, noise: number) => {
     return data;
 }
 
-const preset9 = (density: number, noise: number) => {
+const preset10 = (density: number, noise: number) => {
     let data: number[][] = [];
     let groups: [number, number, number, number, number[]][] = [
         [0, 15, 0, 360, [1, 0, 0]],
@@ -232,7 +264,25 @@ const preset9 = (density: number, noise: number) => {
     return data;
 }
 
-const preset10 = (density: number, noise: number) => {
+const preset11 = (density: number, noise: number) => {
+    let data: number[][] = [];
+    let groups: [number, number, number, number, number[]][] = [
+        [0, 15, 0, 360, [1, 0]],
+        [25, 30, 0, 360, [0, 1]],
+        [40, 45, 0, 360, [1, 0]],
+    ];
+
+    groups.forEach(([minRadius, maxRadius, minAngle, maxAngle, output], index) => {
+        for (let i = 0; i < density * (index + 1); i++) {
+            let [x, y] = radiusRandom(50, minRadius, maxRadius, minAngle, maxAngle, noise);
+            data.push([x, y].concat(output));
+        }
+    });
+
+    return data;
+}
+
+const preset12 = (density: number, noise: number) => {
     let data: number[][] = [];
     let groups: [number, number, number, number, number, number[]][] = [
         [10, 30, 32, 0, 90, [1, 0, 0, 0, 0, 0]],

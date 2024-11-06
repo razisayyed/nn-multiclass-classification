@@ -27,6 +27,8 @@ const PRESET_7 = preset(7, 15, 0);
 const PRESET_8 = preset(8, 15, 0);
 const PRESET_9 = preset(9, 15, 0);
 const PRESET_10 = preset(10, 15, 0);
+const PRESET_11 = preset(11, 15, 0);
+const PRESET_12 = preset(12, 15, 0);
 // const TWO_CLASSES = getTestPointsTowClasses();
 // const THREE_CLASSES = getTestPointsThreeClasses();
 // const SIX_CLASSES = getTestPointsSixClasses();
@@ -258,6 +260,12 @@ function App() {
         </button>
         <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 10, settings.density, settings.noise)}>
           <TestPointsPlot trainingPoints={PRESET_10} bigPoints />
+        </button>
+        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 11, settings.density, settings.noise)}>
+          <TestPointsPlot trainingPoints={PRESET_11} bigPoints />
+        </button>
+        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 12, settings.density, settings.noise)}>
+          <TestPointsPlot trainingPoints={PRESET_12} bigPoints />
         </button>
         <button className="col-span-2 py-2.5 px-1.5 text-white bg-gray-600 hover:bg-gray-700 uppercase" onClick={loadCustomTrainingData}>Load from Excel</button>
       </div>
