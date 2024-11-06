@@ -12,8 +12,8 @@ lazy_static! {
     static ref HEATMAP_DATA: Vec<Vec<f64>> = {
         let mut data = Vec::new();
         for i in 0..2500 {
-            let x1 = (i as f64) / 50.0 * 2.0;
-            let x2 = (i as f64) % 50.0 * 2.0;
+            let x1 = (i as f64) % 50.0 * 2.0;
+            let x2 = ((i as f64) / 50.0 * 2.0).floor();
             data.push(vec![x1, x2]);
         }
         data
