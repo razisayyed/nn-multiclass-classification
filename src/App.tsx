@@ -60,7 +60,7 @@ function App() {
     testingData: preset(8, 12, 0), // 15%
     noise: 0,
     density: 80,
-    preset: 8,
+    preset: 9,
     scale: [3, 3],
   });
 
