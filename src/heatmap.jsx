@@ -38,9 +38,9 @@ export function HeatMap({ data, classesCount }) {
     let pathColor = useCallback((i) => {
 
         let color = HEATMAP_COLORS[i];
-        let colorsRange = ["transparent", color];
+        let colorsRange = ["transparent", "transparent", color];
 
-        let tmpScaleDomain = [0, 1];
+        let tmpScaleDomain = [0, 0.4, 1];
 
         let tmpScale = d3.scaleLinear()
             .domain(tmpScaleDomain)
