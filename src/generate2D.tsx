@@ -1,3 +1,4 @@
+
 export const loadPreset = (dispatch: React.Dispatch<{
     type: string;
     payload?: any;
@@ -331,3 +332,18 @@ const radiusRandom = (center: number, minRadius: number, maxRadius: number, minA
     // return x, y
     return [center + radius * Math.cos(angle), center + radius * Math.sin(angle)];
 }
+
+export const PRESETS = [
+    preset(1, 20, 0),
+    preset(2, 20, 0),
+    preset(3, 20, 0),
+    preset(4, 20, 0),
+    preset(5, 20, 0),
+    preset(6, 20, 0),
+    preset(7, 20, 0),
+    preset(8, 20, 0),
+    preset(9, 20, 0),
+    preset(10, 20, 0),
+    preset(11, 20, 0),
+    preset(12, 20, 0),
+];

@@ -156,7 +156,7 @@ export function TestPointsPlot({
 
 export function Circle({ point, pointType, f }: { point: TestPoint, pointType: string, f: () => number }) {
     let strokeWidth = pointType === "training" ? 0.1 : 0.5;
-    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "blue" : "red";
+    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "red" : "blue";
     return (
         <circle cx={point.x} cy={point.y} r={f()} className={point.color} stroke={strokeColor} strokeWidth={strokeWidth} />
     )
@@ -164,7 +164,7 @@ export function Circle({ point, pointType, f }: { point: TestPoint, pointType: s
 
 export function Rect({ point, pointType, f }: { point: TestPoint, pointType: string, f: () => number }) {
     let strokeWidth = pointType === "training" ? 0.1 : 0.5;
-    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "blue" : "red";
+    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "red" : "blue";
     return (
         <rect x={point.x - f()} y={point.y - f()} width={f() * 2} height={f() * 2} className={point.color} stroke={strokeColor} strokeWidth={strokeWidth} />
     )
@@ -172,7 +172,7 @@ export function Rect({ point, pointType, f }: { point: TestPoint, pointType: str
 
 export function Triangle({ point, pointType, f }: { point: TestPoint, pointType: string, f: () => number }) {
     let strokeWidth = pointType === "training" ? 0.1 : 0.5;
-    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "blue" : "red";
+    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "red" : "blue";
     return (
         <polygon points={`${point.x},${point.y - f()} ${point.x - f()},${point.y + f()} ${point.x + f()},${point.y + f()}`} className={point.color} stroke={strokeColor} strokeWidth={strokeWidth} />
     )
@@ -180,7 +180,7 @@ export function Triangle({ point, pointType, f }: { point: TestPoint, pointType:
 
 export function FortyFiveDegRect({ point, pointType, f }: { point: TestPoint, pointType: string, f: () => number }) {
     let strokeWidth = pointType === "training" ? 0.1 : 0.5;
-    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "blue" : "red";
+    let strokeColor = pointType === "training" ? "black" : pointType == "validation" ? "red" : "blue";
     return (
         <polygon points={`${point.x - f() * 1.2},${point.y} ${point.x},${point.y + f() * 1.2} ${point.x + f() * 1.2},${point.y} ${point.x},${point.y - f() * 1.2}`} className={point.color} stroke={strokeColor} strokeWidth={strokeWidth} />
     )

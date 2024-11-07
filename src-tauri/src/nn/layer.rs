@@ -1,10 +1,13 @@
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+
 use super::{
     activation_functions::{get_activation_function, ActivationFunction},
     neuron::{GradiantErrorInput, Neuron},
 };
-use rayon::prelude::*;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum LayerType {
     Hidden,
     Output,
@@ -129,5 +132,13 @@ impl Layer {
             //     .collect::<Vec<_>>(),
             // _ => outputs,
         }
+    }
+
+    pub fn get_parameters(&self) -> Vec<(Vec<f64>, f64, LayerType)> {
+        self.neurons
+            .iter()
+            .map(|n| n.get_parameters())
+            .map(|(weights, threshold)| (weights, threshold, self.layer_type))
+            .collect::<Vec<_>>()
     }
 }

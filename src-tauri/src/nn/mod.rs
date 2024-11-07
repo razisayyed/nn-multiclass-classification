@@ -20,6 +20,7 @@ pub struct NeuralNetwork {
 }
 
 impl NeuralNetwork {
+    #[allow(dead_code)]
     pub fn new<I: Clone + Copy + Into<f64>, O: Clone + Copy + Into<f64>>(
         inputs_count: usize,
         hidden_layers_topology: Vec<usize>,
@@ -172,6 +173,7 @@ impl NeuralNetwork {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub fn forward(&mut self, index: usize) -> Vec<f64> {
         // convert inputs to f64
         let (inputs, _) = self.training_data.get(index).unwrap();
@@ -185,6 +187,7 @@ impl NeuralNetwork {
             })
     }
 
+    #[allow(dead_code)]
     pub fn backward(&mut self, index: usize) {
         let (_, y_desired) = self.training_data.get(index).unwrap();
         // let y_desired = y_desired.iter().map(|&i| i.into()).collect::<Vec<f64>>();
@@ -198,10 +201,12 @@ impl NeuralNetwork {
             });
     }
 
+    #[allow(dead_code)]
     pub fn commit(&mut self) {
         self.layers.iter_mut().for_each(|l| l.commit());
     }
 
+    #[allow(dead_code)]
     pub fn epoch(&mut self) -> (f64, f64) {
         self.mse = 0.0;
         self.mse_validation = 0.0;
@@ -222,6 +227,7 @@ impl NeuralNetwork {
         (self.mse, self.mse_validation)
     }
 
+    #[allow(dead_code)]
     pub fn iteration(&mut self, index: usize) -> f64 {
         self.forward(index);
         self.backward(index);
@@ -240,6 +246,7 @@ impl NeuralNetwork {
             .fold(0.0, |acc, (n, &y_desired)| acc + (y_desired - n.y).powi(2))
     }
 
+    #[allow(dead_code)]
     pub fn predict<I: Clone + Copy + Into<f64>>(&self, inputs: &Vec<I>) -> Vec<f64> {
         let inputs = inputs.iter().map(|&i| i.into()).collect::<Vec<f64>>();
         let inputs = self.normalize_input(&inputs);
@@ -275,6 +282,7 @@ impl NeuralNetwork {
             })
     }
 
+    #[allow(dead_code)]
     pub fn confusion_matrix(&self) -> Vec<Vec<usize>> {
         let output_len = self.layers.iter().last().unwrap().neurons.len();
         self.testing_data
@@ -307,6 +315,7 @@ impl NeuralNetwork {
         // .collect::<Vec<(usize, usize)>>()
     }
 
+    #[allow(dead_code)]
     pub fn cross_entropy_loss(&self) -> f64 {
         let mut total_loss = 0.0;
 
@@ -324,7 +333,18 @@ impl NeuralNetwork {
         total_loss / self.training_data.len() as f64
     }
 
-    // pub fn results(&self) -> Vec<Vec<(Vec<(usize, f64)>, f64)>> {
-    //     self.layers.iter().map(|l| l.results()).collect()
-    // }
+    #[allow(dead_code)]
+    pub fn get_parameters(&self) -> Vec<Vec<(Vec<f64>, f64, LayerType)>> {
+        self.layers.iter().map(|l| l.get_parameters()).collect()
+    }
 }
+
+// struct NeuronParameters {
+//     weights: Vec<f64>,
+//     threshold: f64,
+// }
+
+// struct LayerParameters {
+//     neurons: Vec<NeuronParameters>,
+//     layer_type: LayerType,
+// }

@@ -141,6 +141,10 @@ impl Neuron {
     pub fn get_prev_neuron_effect(&self, w_index: usize) -> f64 {
         self.gradiant_error * self.weights[w_index]
     }
+
+    pub fn get_parameters(&self) -> (Vec<f64>, f64) {
+        (self.weights.clone(), self.threshold)
+    }
 }
 
 #[derive(Clone, Debug)]

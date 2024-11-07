@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{sync::RwLock, thread::sleep, time::Duration};
 use tauri::{AppHandle, Builder, Emitter, Manager};
 
-use nn::{activation_functions::ActivationFunction, NeuralNetwork};
+use nn::{activation_functions::ActivationFunction, layer::LayerType, NeuralNetwork};
 
 mod nn;
 
@@ -18,19 +18,48 @@ lazy_static! {
         }
         data
     };
+    static ref DEFAULT_NN: NeuralNetwork = NeuralNetwork::new::<f64, f64>(
+        2,
+        vec![8, 4],
+        &[ActivationFunction::Relu, ActivationFunction::Relu],
+        2,
+        ActivationFunction::Softmax,
+        0.1,
+        vec![],
+        vec![],
+        vec![],
+    );
+    static ref DEFAULT_STATS: ClientState = ClientState {
+        is_learning: false,
+        epoch: None,
+        mse: None,
+        mse_validation: None,
+        mse_history: None,
+        mse_validation_history: None,
+        cross_entropy_loss: None,
+        confusion_matrix: None,
+        predicted: None,
+        parameters: None,
+        heatmap: Some(get_dummy_heatmap_data()),
+    };
 }
 
 // static HEATMAP_DATA: &'static str = include_str!("../heatmap.json");
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct EpochStats {
+struct ClientState {
+    is_learning: bool,
     mse: Option<f64>,
     mse_validation: Option<f64>,
+    mse_history: Option<Vec<f64>>,
+    mse_validation_history: Option<Vec<f64>>,
     epoch: Option<usize>,
     confusion_matrix: Option<Vec<Vec<usize>>>,
     cross_entropy_loss: Option<f64>,
     predicted: Option<Vec<f64>>,
+    parameters: Option<Vec<Vec<(Vec<f64>, f64, LayerType)>>>,
+    heatmap: Option<Vec<Vec<f64>>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -62,8 +91,6 @@ async fn reset(app: AppHandle, settings: Settings) -> Result<(), String> {
     // aquire the state
     let state = app.state::<RwLock<AppState>>();
     let mut state = state.write().unwrap();
-
-    state.is_learning = false;
 
     let hidden_layers_topology = settings
         .hidden_layers
@@ -110,32 +137,42 @@ async fn reset(app: AppHandle, settings: Settings) -> Result<(), String> {
             .collect::<Vec<_>>(),
     );
 
-    reset_client_state(&app, false);
+    state.client_state = DEFAULT_STATS.clone();
+    reset_client_state(&app, Some(&state.client_state));
 
     Ok(())
 }
 
 #[tauri::command]
 async fn stop(app: AppHandle) -> Result<(), String> {
-    let state = app.state::<RwLock<AppState>>();
-    let mut state = state.write().unwrap();
-    state.is_learning = false;
-    let confusion_matrix = state.nn.confusion_matrix();
-    app.emit("CONFUSION_MATRIX", confusion_matrix).unwrap();
-    let cross_entropy_loss = state.nn.cross_entropy_loss();
-    app.emit("CROSS_ENTROPY_LOSS", cross_entropy_loss).unwrap();
-    app.emit("IS_LEARNING", false).unwrap();
+    {
+        let state = app.state::<RwLock<AppState>>();
+        let mut state = state.write().unwrap();
+        state.client_state.is_learning = false;
+    }
+    // allow the learn function to break the loop
+    sleep(Duration::from_millis(100));
+    {
+        let state = app.state::<RwLock<AppState>>();
+        let mut state = state.write().unwrap();
+        state.client_state.confusion_matrix = Some(state.nn.confusion_matrix());
+        state.client_state.cross_entropy_loss = Some(state.nn.cross_entropy_loss());
+        state.client_state.parameters = Some(state.nn.get_parameters());
+        app.emit("UPDATE_CLIENT_STATE", state.client_state.clone())
+            .unwrap();
+    }
     Ok(())
 }
 
 #[tauri::command]
 async fn learn(app: AppHandle, max_epoch_count: usize, desired_mse: f64) -> Result<(), String> {
     {
-        reset_client_state(&app, true);
         // aquire the state and update the training data
         let state = app.state::<RwLock<AppState>>();
         let mut state = state.write().unwrap();
-        state.is_learning = true;
+        state.client_state = DEFAULT_STATS.clone();
+        state.client_state.is_learning = true;
+        reset_client_state(&app, Some(&state.client_state));
         // state aquiration ends here
     }
 
@@ -143,27 +180,27 @@ async fn learn(app: AppHandle, max_epoch_count: usize, desired_mse: f64) -> Resu
         {
             let state = app.state::<RwLock<AppState>>();
             let mut state = state.write().unwrap();
-            if state.is_learning == false {
+            if state.client_state.is_learning == false {
                 return Err("Learning stopped!".to_string());
             }
 
             let (mse, mse_validation) = state.nn.epoch();
-            app.emit(
-                "EPOCH",
-                EpochStats {
-                    epoch: Some(epoch),
-                    mse: Some(mse),
-                    mse_validation: Some(mse_validation),
-                    // do we need cross_entropy_loss here?
-                    cross_entropy_loss: None,
-                    // do we need confusion_matrix here?
-                    confusion_matrix: None,
-                    predicted: None,
-                },
-            )
-            .unwrap();
-            let heatmap = get_heatmap_data(&state.nn);
-            app.emit("HEATMAP", heatmap).unwrap();
+            state.client_state.epoch = Some(epoch);
+            state.client_state.mse = Some(mse);
+            state.client_state.mse_validation = Some(mse_validation);
+            if let Some(v) = state.client_state.mse_history.as_mut() {
+                v.push(mse);
+            } else {
+                state.client_state.mse_history = Some(vec![mse]);
+            }
+            if let Some(v) = state.client_state.mse_validation_history.as_mut() {
+                v.push(mse_validation);
+            } else {
+                state.client_state.mse_validation_history = Some(vec![mse_validation]);
+            }
+            state.client_state.heatmap = Some(get_heatmap_data(&state.nn));
+            app.emit("UPDATE_CLIENT_STATE", &state.client_state)
+                .unwrap();
             if mse <= desired_mse {
                 return Err("Desired MSE reached!".to_string());
             }
@@ -177,23 +214,26 @@ async fn learn(app: AppHandle, max_epoch_count: usize, desired_mse: f64) -> Resu
     {
         // aquire the state and update the training data
         let state = app.state::<RwLock<AppState>>();
-        let state = state.read().unwrap();
+        let mut state = state.write().unwrap();
         let confusion_matrix = state.nn.confusion_matrix();
-        app.emit("CONFUSION_MATRIX", Some(confusion_matrix))
+        state.client_state = ClientState {
+            is_learning: false,
+            confusion_matrix: Some(confusion_matrix),
+            cross_entropy_loss: Some(state.nn.cross_entropy_loss()),
+            parameters: Some(state.nn.get_parameters()),
+            ..state.client_state.clone()
+        };
+        app.emit("UPDATE_CLIENT_STATE", state.client_state.clone())
             .unwrap();
-        let cross_entropy_loss = state.nn.cross_entropy_loss();
-        app.emit("CROSS_ENTROPY_LOSS", cross_entropy_loss).unwrap();
         // state aquiration ends here
     }
-
-    app.emit("IS_LEARNING", false).unwrap();
 
     Ok(())
 }
 
 #[tauri::command]
 async fn load_custom_data(app: AppHandle, path: String) -> Result<Vec<Vec<f64>>, String> {
-    reset_client_state(&app, false);
+    reset_client_state(&app, None);
     let mut workbook: Xlsx<_> = open_workbook(path).expect("Cannot open file");
     if let Ok(range) = workbook
         .with_header_row(HeaderRow::FirstNonEmptyRow)
@@ -217,10 +257,10 @@ async fn load_custom_data(app: AppHandle, path: String) -> Result<Vec<Vec<f64>>,
 #[tauri::command]
 async fn predict(app: AppHandle, inputs: Vec<f64>) -> Result<(), String> {
     let state = app.state::<RwLock<AppState>>();
-    let state = state.read().unwrap();
-    let outputs = state.nn.predict(&inputs);
-
-    app.emit("PREDICTED", outputs).unwrap();
+    let mut state = state.write().unwrap();
+    state.client_state.predicted = Some(state.nn.predict(&inputs));
+    app.emit("UPDATE_CLIENT_STATE", state.client_state.clone())
+        .unwrap();
 
     Ok(())
 }
@@ -239,50 +279,27 @@ fn get_dummy_heatmap_data() -> Vec<Vec<f64>> {
         .collect::<Vec<_>>()
 }
 
-fn reset_client_state(app: &AppHandle, is_running: bool) {
-    let heatmap: Vec<Vec<f64>> = get_dummy_heatmap_data();
-    app.emit("HEATMAP", heatmap).unwrap();
+fn reset_client_state(app: &AppHandle, stats: Option<&ClientState>) {
     app.emit(
-        "EPOCH",
-        EpochStats {
-            epoch: None,
-            mse: None,
-            mse_validation: None,
-            cross_entropy_loss: None,
-            confusion_matrix: None,
-            predicted: None,
-        },
+        "UPDATE_CLIENT_STATE",
+        stats.unwrap_or(&DEFAULT_STATS.clone()),
     )
     .unwrap();
-    app.emit::<Option<Vec<Vec<usize>>>>("CONFUSION_MATRIX", None)
-        .unwrap();
-    app.emit::<Option<f64>>("CROSS_ENTROPY_LOSS", None).unwrap();
-    app.emit("IS_LEARNING", is_running).unwrap();
 }
 
 struct AppState {
     nn: NeuralNetwork,
-    is_learning: bool,
+    client_state: ClientState,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     Builder::default()
         .setup(|app| {
-            let nn = NeuralNetwork::new::<f64, f64>(
-                2,
-                vec![8, 4],
-                &[ActivationFunction::Relu, ActivationFunction::Relu],
-                2,
-                ActivationFunction::Softmax,
-                0.1,
-                vec![],
-                vec![],
-                vec![],
-            );
+            let nn = DEFAULT_NN.clone();
             let state = AppState {
                 nn,
-                is_learning: false,
+                client_state: DEFAULT_STATS.clone(),
             };
             app.manage(RwLock::new(state));
             Ok(())

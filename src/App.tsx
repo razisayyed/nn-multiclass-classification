@@ -1,157 +1,56 @@
-import { useDeferredValue, useEffect, useReducer, useState, useTransition } from "react";
+import { useEffect, useReducer, useState, useTransition } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 
-// import { LineChart, Line } from 'recharts';
-// import * as d3 from "d3";
-// import * as d3Contour from "d3-contour";
-
 import "./App.css";
 import { Circle, FortyFiveDegRect, Rect, TestPointsPlot, Triangle } from "./testpoints";
-import { settingsReducer } from "./settings";
-import { stateReducer } from "./state";
+import { initialSettings, settingsReducer } from "./settings";
+import { initialState, State, stateReducer } from "./state";
 import { HeatMap } from "./heatmap";
 
-import { loadPreset, preset } from "./generate2D";
+import { loadPreset, PRESETS } from "./generate2D";
 import { ConfusionMatrixTable } from "./confusionMatrix";
 import { COLORS, SHAPES } from "./constants";
+import { LineChart } from "./linechart";
 
-const PRESET_1 = preset(1, 15, 0);
-const PRESET_2 = preset(2, 15, 0);
-const PRESET_3 = preset(3, 15, 0);
-const PRESET_4 = preset(4, 15, 0);
-const PRESET_5 = preset(5, 15, 0);
-const PRESET_6 = preset(6, 15, 0);
-const PRESET_7 = preset(7, 15, 0);
-const PRESET_8 = preset(8, 15, 0);
-const PRESET_9 = preset(9, 15, 0);
-const PRESET_10 = preset(10, 15, 0);
-const PRESET_11 = preset(11, 15, 0);
-const PRESET_12 = preset(12, 15, 0);
-// const TWO_CLASSES = getTestPointsTowClasses();
-// const THREE_CLASSES = getTestPointsThreeClasses();
-// const SIX_CLASSES = getTestPointsSixClasses();
-// const NINE_CLASSES = getTestPointsNineClasses();
-
-interface EpochStats {
-  mse: number | null;
-  mseValidation: number | null;
-  epoch: number | null;
-  crossEntropyLoss: number | null;
-  confusionMatrix: number[][] | null;
-  predicted: number[] | null;
-}
 
 function App() {
 
-  const [settings, dispatchSettings] = useReducer(settingsReducer, {
-    layersCount: 2,
-    hiddenLayers: [
-      { neuronsCount: 16, activationFunction: "relu" },
-      { neuronsCount: 8, activationFunction: "relu" },
-    ],
-    outputLayer: { neuronsCount: 2, activationFunction: "softmax" },
-    alpha: 0.03,
-    maxEpochs: 500,
-    desiredMse: 0.01,
-    trainingData: preset(8, 56, 0), // 70%
-    validationData: preset(8, 12, 0), // 15%
-    testingData: preset(8, 12, 0), // 15%
-    noise: 0,
-    density: 80,
-    preset: 9,
-    scale: [3, 3],
-  });
-
-  const [state, dispatchState] = useReducer(stateReducer, {
-    mse: null,
-    mseValidation: null,
-    epoch: null,
-    confusionMatrix: null,
-    crossEntropyLoss: null,
-    predicted: null,
-    isLearning: false,
-  });
-
+  const [settings, dispatchSettings] = useReducer(settingsReducer, initialSettings);
+  const [state, dispatchState] = useReducer(stateReducer, initialState);
 
   const [_isPending, startTransition] = useTransition();
 
-  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
+  // const [heatmapData, setHeatmapData] = useState<number[][]>([]);
   const [showValidationPoints, setShowValidationPoints] = useState(false);
   const [showTestingPoints, setShowTestingPoints] = useState(false);
+  // const deferredHeatmapData = useDeferredValue(heatmapData);
 
-  const deferredHeatmapData = useDeferredValue(heatmapData);
-
-
+  // ON MOUNT
   useEffect(() => {
-    let epochUnlisten = listen<EpochStats>("EPOCH", (event) => {
+    let epochUnlisten = listen<State>("UPDATE_CLIENT_STATE", (event) => {
       startTransition(() => {
-        dispatchState({ type: "SET_MSE", payload: { mse: event.payload.mse } });
-        dispatchState({ type: "SET_MSE_VALIDATION", payload: { mseValidation: event.payload.mseValidation } });
-        dispatchState({ type: "SET_EPOCH", payload: { epoch: event.payload.epoch } });
-        dispatchState({ type: "SET_CROSS_ENTROPY_LOSS", payload: { crossEntropyLoss: event.payload.crossEntropyLoss } });
-        dispatchState({ type: "SET_CONFUSION_MATRIX", payload: { confusionMatrix: event.payload.confusionMatrix } });
-        dispatchState({ type: "SET_PREDICTED", payload: { predicted: event.payload.predicted } });
+        dispatchState({ type: "UPDATE", payload: event.payload });
       });
     });
 
-    let crossEntropyLossUnlisten = listen<number>("CROSS_ENTROPY_LOSS", (event) => {
-      dispatchState({ type: "SET_CROSS_ENTROPY_LOSS", payload: { crossEntropyLoss: event.payload } });
-    });
-    // listen to mse event from rust and update mse
-    // listen to output event from rust and update heatmapData
-    let heatmapUnlestin = listen<number[][]>("HEATMAP", (event) => {
-      // setHeatmapData(event.payload)
-      startTransition(() => setHeatmapData(event.payload));
-      // return event.payload;
-      // let heatmapData = event.payload.map((r: number[], _index: number) => {
-      //   let clz = r.reduce(({ clz, max }, value, index) => {
-      //     if (value > max) {
-      //       // val = index + value;
-      //       // return { clz: index, max: value };
-      //       return { clz: index, max: value };
-      //     }
-      //     return { clz, max };
-      //   }, { clz: 0, max: -100 });
-
-      //   // if (clz.max <= 0.51) {
-      //   //   return clz.clz + 0.5;
-      //   // } else {
-      //   return clz.clz + (1 - clz.max);
-      //   // }
-      //   // return clz.clz;
-      // });
-      // setHeatmapData(heatmapData);
-    });
-
-    let predictedUnlisten = listen<number[]>("PREDICTED", (event) => {
-      dispatchState({ type: "SET_PREDICTED", payload: { predicted: event.payload } });
-    });
-
-    let confusionMatrixUnlisten = listen("CONFUSION_MATRIX", (event) => {
-      // console.log("CONFUSION_MATRIX", event.payload);
-      dispatchState({ type: "SET_CONFUSION_MATRIX", payload: { confusionMatrix: event.payload } });
-    });
-
-    let isRunningUnlisten = listen<boolean>("IS_LEARNING", (event) => {
-      dispatchState({ type: "SET_IS_LEARNING", payload: { isLearning: event.payload } });
-    });
+    // let heatmapUnlestin = listen<number[][]>("HEATMAP", (event) => {
+    //   startTransition(() => setHeatmapData(event.payload));
+    // });
 
     return () => {
       epochUnlisten.then(f => f());
-      crossEntropyLossUnlisten.then(f => f());
-      heatmapUnlestin.then(f => f());
-      confusionMatrixUnlisten.then(f => f());
-      predictedUnlisten.then(f => f());
-      isRunningUnlisten.then(f => f());
+      // heatmapUnlestin.then(f => f());
     };
   }, [])
 
+  // ON SETTINGS CHANGE
   useEffect(() => {
     // invoke reset command to initialize the state
+    // reset will stop the learning process and reset the epoch, mse, mseValidation, mseHistory, mseValidationHistory, confusionMatrix, crossEntropyLoss, predicted, isLearning, parameters
+    // actual code is implemented in server side (rust) in src-tauri/src/lib.rs
     invoke("reset", { settings: settings });
-
   }, [settings]);
 
   async function loadCustomTrainingData() {
@@ -231,42 +130,11 @@ function App() {
           }
           } />
         </div>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 1, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_1} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 2, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_2} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 3, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_3} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 4, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_4} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 5, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_5} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 6, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_6} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 7, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_7} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 8, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_8} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 9, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_9} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 10, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_10} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 11, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_11} bigPoints />
-        </button>
-        <button className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, 12, settings.density, settings.noise)}>
-          <TestPointsPlot trainingPoints={PRESET_12} bigPoints />
-        </button>
+        {PRESETS.map((preset, index) => (
+          <button key={`preset_button_${index}`} className="aspect-square bg-white w-full" onClick={_ => loadPreset(dispatchSettings, index + 1, settings.density, settings.noise)}>
+            <TestPointsPlot trainingPoints={preset} bigPoints />
+          </button>
+        ))}
         <button className="col-span-2 py-2.5 px-1.5 text-white bg-gray-600 hover:bg-gray-700 uppercase" onClick={loadCustomTrainingData}>Load from Excel</button>
       </div>
       <main className="h-screen overflow-auto w-full">
@@ -352,26 +220,29 @@ function App() {
           </div>
         </div>
         <div className="bg-gray-100 p-2 w-full mb-2">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <div className="flex flex-col items-stretch gap-2">
               <div>Epoch</div>
               <div>{state.epoch === null ? '-' : state.epoch}</div>
             </div>
-            <div className="flex flex-col items-stretch gap-2">
+            <div className="flex flex-col items-stretch gap-2 text-indigo-700">
               <div>MSE (TRAINING)</div>
-              <div>{state.mse === null ? '-' : state.mse}</div>
+              <div>{state.mse === null ? '-' : state.mse.toPrecision(5)}</div>
             </div>
-            <div className="flex flex-col items-stretch gap-2">
+            <div className="flex flex-col items-stretch gap-2 text-red-700">
               <div>MSE (VALIDATION)</div>
-              <div>{state.mseValidation === null ? '-' : state.mseValidation}</div>
+              <div>{state.mseValidation === null ? '-' : state.mseValidation.toPrecision(5)}</div>
+            </div>
+            <div className="col-span-2">
+              <LineChart mse={state.mseHistory} mseValidation={state.mseValidationHistory} />
             </div>
           </div>
         </div>
         <div className="flex items-stretch gap-2">
           <div className="width-[300px] bg-gray-100 p-2 mb-2">
             <div className="w-[300px] h-[300px] relative mb-2">
-              {heatmapData.length > 0 && (
-                <HeatMap data={deferredHeatmapData} classesCount={settings.outputLayer.neuronsCount} />
+              {state.heatmap !== null && state.heatmap.length > 0 && (
+                <HeatMap data={state.heatmap} classesCount={settings.outputLayer.neuronsCount} />
               )}
               {settings.trainingData.length > 0 && (
                 <div className="absolute inset-0">
@@ -386,20 +257,20 @@ function App() {
             <div className="flex justify-start items-start gap-2 w-[300px]">
               <div className="flex items-center gap-2">
                 <input id="testing_set_input" type="checkbox" checked={showTestingPoints} onChange={(e) => setShowTestingPoints(e.target.checked)}
-                  className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
+                  className="w-4 h-4 text-blue-700 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                 <label htmlFor="testing_set_input">Testing Set</label>
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <input id="validation_set_input" type="checkbox" checked={showValidationPoints} onChange={(e) => setShowValidationPoints(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
+                  className="w-4 h-4 text-red-700 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                 <label htmlFor="validation_set_input">Validation Set</label>
               </div>
             </div>
           </div>
-          <div className="bg-gray-100 p-2 w-full mb-2">
+          <div className="bg-gray-100 p-2 w-full mb-2 text-blue-700">
             <div className="flex flex-col items-stretch gap-2">
               <div className="text-center">CROSS ENTROPY LOSS (TEST)</div>
-              <div className="text-center">{state.crossEntropyLoss === null ? '-' : state.crossEntropyLoss}</div>
+              <div className="text-center">{state.crossEntropyLoss === null ? '-' : state.crossEntropyLoss.toPrecision(5)}</div>
               <div className="text-center">CONFUSION MATRIX (TEST)</div>
               <ConfusionMatrixTable confusionMatrix={state.confusionMatrix || []} />
             </div>
@@ -421,7 +292,7 @@ function App() {
 
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                {state.predicted.map((p, i) => (
+                {state.predicted.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).map(([v, i], index) => (
                   <div key={i} className="flex items-center gap-2">
                     <svg className="w-[16px] h-[16px] inline-block mr-2 shrink-0" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                       {SHAPES[i] === "circle" && <Circle f={() => 7} point={{ x: 8, y: 8, color: COLORS[i], shape: "circle" }} pointType="training" />}
@@ -429,13 +300,39 @@ function App() {
                       {SHAPES[i] === "triangle" && <Triangle f={() => 7} point={{ x: 8, y: 8, color: COLORS[i], shape: "triangle" }} pointType="training" />}
                       {SHAPES[i] === "45degrect" && <FortyFiveDegRect f={() => 7} point={{ x: 8, y: 8, color: COLORS[i], shape: "45degrect" }} pointType="training" />}
                     </svg>
-                    <span>{p}</span>
+                    <span className={index == 0 ? "font-bold" : ""}>{v.toPrecision(5)}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
         </div>
+        {/* {state.parameters !== null && (
+          <div className="bg-gray-100 p-2 w-full mb-2">
+            <div className="flex flex-col items-stretch gap-2">
+              <div className="text-center">PARAMETERS</div>
+              {state.parameters.map((layer, index) => (
+                <div key={index} className="flex flex-col items-stretch gap-2">
+                  <div className="text-center">L{index + 1}</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {layer.map((neuron, i) => (
+                      <div key={i} className="flex flex-col items-stretch gap-2">
+                        <div className="text-center">N{i + 1}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {neuron[0].map((w, j) => (
+                            <div key={j} className="flex items-center gap-2">
+                              <span>{w.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )} */}
       </main >
 
     </div >
